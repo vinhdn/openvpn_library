@@ -21,12 +21,15 @@ public class OpenVpnApi {
     private static final String TAG = "OpenVpnApi";
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
-    public static void startVpn(Context context, String config, String name, String username, String password, List<String> bypassPackages) throws RemoteException {
+    public static void startVpn(Context context, String config, String name, String username, String password, String keyPassword, List<String> bypassPackages) throws RemoteException {
         if (TextUtils.isEmpty(config)) throw new RemoteException("config is empty");
-        startVpnInternal(context, config, name, username, password, bypassPackages);
+        startVpnInternal(context, config, name, username, password, keyPassword, bypassPackages);
     }
 
     static void startVpnInternal(Context context, String config, String name, String username, String password, List<String> bypassPackages) throws RemoteException {
+        startVpnInternal(context, config, name, username, password, "", bypassPackages);
+    }
+    static void startVpnInternal(Context context, String config, String name, String username, String password, String keyPassword, List<String> bypassPackages) throws RemoteException {
         ConfigParser cp = new ConfigParser();
         try {
             cp.parseConfig(new StringReader(config));
@@ -38,6 +41,7 @@ public class OpenVpnApi {
             vp.mProfileCreator = context.getPackageName();
             vp.mUsername = username;
             vp.mPassword = password;
+            if(!keyPassword.isEmpty()) vp.mKeyPassword = keyPassword;
             if(bypassPackages.size() > 0){
                 vp.mAllowAppVpnBypass = true;
                 vp.mAllowedAppsVpn = new HashSet<>(bypassPackages);
