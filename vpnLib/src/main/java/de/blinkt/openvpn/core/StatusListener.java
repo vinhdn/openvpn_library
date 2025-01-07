@@ -5,30 +5,35 @@
 
 package de.blinkt.openvpn.core;
 
-import android.app.PendingIntent;
+import android.app.ActivityManager;
+import android.app.ApplicationExitInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.util.Log;
+
+import androidx.annotation.RequiresApi;
+
 import de.blinkt.openvpn.BuildConfig;
 import de.blinkt.openvpn.core.VpnStatus.LogLevel;
 
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Created by arne on 09.11.16.
  */
 
 public class StatusListener implements VpnStatus.LogListener {
-    private File mCacheDir;
-    private Context mContext;
-    private IStatusCallbacks mCallback = new IStatusCallbacks.Stub() {
+    private final IStatusCallbacks mCallback = new IStatusCallbacks.Stub() {
         @Override
         public void newLogItem(LogItem item) throws RemoteException {
             VpnStatus.newLogItem(item);
@@ -37,7 +42,19 @@ public class StatusListener implements VpnStatus.LogListener {
         @Override
         public void updateStateString(String state, String msg, int resid, ConnectionStatus
                 level, Intent intent) throws RemoteException {
-            VpnStatus.updateStateString(state, msg, resid, level, intent);
+            Intent newIntent = reCreateIntent(intent);
+            VpnStatus.updateStateString(state, msg, resid, level, newIntent);
+        }
+
+        private Intent reCreateIntent(Intent intent) {
+            /* To avoid UnsafeIntentLaunchViolation we recreate the intent that we passed
+             * to ourselves via the AIDL interface */
+            if (intent == null)
+                return null;
+            Intent newIntent = new Intent(intent.getAction(), intent.getData());
+            if (intent.getExtras() != null)
+                newIntent.putExtras(intent.getExtras());
+            return newIntent;
         }
 
         @Override
@@ -50,7 +67,8 @@ public class StatusListener implements VpnStatus.LogListener {
             VpnStatus.setConnectedVPNProfile(uuid);
         }
     };
-    private ServiceConnection mConnection = new ServiceConnection() {
+    private File mCacheDir;
+    private final ServiceConnection mConnection = new ServiceConnection() {
 
 
         @Override
@@ -76,15 +94,12 @@ public class StatusListener implements VpnStatus.LogListener {
                         len = fd.readShort();
                     }
                     fd.close();
+                    pfd.close();
 
 
                 } else {
                     VpnStatus.initLogCache(mCacheDir);
                     /* Set up logging to Logcat with a context) */
-
-                    if (BuildConfig.DEBUG) {
-                        VpnStatus.addLogListener(StatusListener.this);
-                    }
 
 
                 }
@@ -101,9 +116,11 @@ public class StatusListener implements VpnStatus.LogListener {
         }
 
     };
+    private Context mContext;
+    private String pkgName = "(packageName not yet set)";
 
     void init(Context c) {
-
+        pkgName = c.getPackageName();
         Intent intent = new Intent(c, OpenVPNStatusService.class);
         intent.setAction(OpenVPNService.START_SERVICE);
         mCacheDir = c.getCacheDir();
@@ -111,27 +128,52 @@ public class StatusListener implements VpnStatus.LogListener {
         c.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         this.mContext = c;
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            logLatestExitReasons(c);
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private void logLatestExitReasons(Context c) {
+        ActivityManager activityManager = (ActivityManager) c.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ApplicationExitInfo> exitReasons = activityManager.getHistoricalProcessExitReasons(null, 0, 5);
+        ApplicationExitInfo lastguiexit = null;
+        ApplicationExitInfo lastserviceexit = null;
+        for (ApplicationExitInfo aei : exitReasons) {
+            if (aei.getProcessName().endsWith(":openvpn")) {
+                if (lastserviceexit == null || aei.getTimestamp() > lastserviceexit.getTimestamp())
+                    lastserviceexit = aei;
+            } else {
+                if (lastguiexit == null || aei.getTimestamp() > lastguiexit.getTimestamp())
+                    lastguiexit = aei;
+            }
+        }
+        logExitNotification(lastserviceexit, "Last exit reason reported by Android for Service Process: ");
+        logExitNotification(lastguiexit, "Last exit reason reported by Android for UI Process: ");
+
+    }
+
+    private void logExitNotification(ApplicationExitInfo aei, String s) {
+        if (aei != null) {
+            LogItem li = new LogItem(LogLevel.DEBUG, s + aei, aei.getTimestamp());
+            VpnStatus.newLogItemIfUnique(li);
+        }
     }
 
     @Override
     public void newLog(LogItem logItem) {
+        String tag = pkgName + "(OpenVPN)";
+        long logAge = System.currentTimeMillis() - logItem.getLogtime();
+        if (logAge > 5000)
+        {
+            tag += String.format(Locale.US, "[%ds ago]", logAge/1000 );
+        }
+
         switch (logItem.getLogLevel()) {
-            case INFO:
-                Log.i("OpenVPN", logItem.getString(mContext));
-                break;
-            case DEBUG:
-                Log.d("OpenVPN", logItem.getString(mContext));
-                break;
-            case ERROR:
-                Log.e("OpenVPN", logItem.getString(mContext));
-                break;
-            case VERBOSE:
-                Log.v("OpenVPN", logItem.getString(mContext));
-                break;
-            case WARNING:
-            default:
-                Log.w("OpenVPN", logItem.getString(mContext));
-                break;
+            case INFO -> Log.i(tag, logItem.getString(mContext));
+            case DEBUG -> Log.d(tag, logItem.getString(mContext));
+            case ERROR -> Log.e(tag, logItem.getString(mContext));
+            case VERBOSE -> Log.v(tag, logItem.getString(mContext));
+            default -> Log.w(tag, logItem.getString(mContext));
         }
 
     }

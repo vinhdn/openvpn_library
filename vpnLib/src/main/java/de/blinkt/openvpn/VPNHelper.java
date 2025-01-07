@@ -85,7 +85,7 @@ public class VPNHelper extends Activity {
     }
 
     public void stopVPN() {
-        OpenVPNThread.stop();
+//        OpenVPNThread.stop();
     }
 
     private void connect() {
@@ -107,7 +107,7 @@ public class VPNHelper extends Activity {
             case "DISCONNECTED":
                 output = "disconnected";
                 vpnStart = false;
-                OpenVPNService.setDefaultStatus();
+//                OpenVPNService.setDefaultStatus();
                 break;
             case "WAIT":
                 output = "wait_connection";

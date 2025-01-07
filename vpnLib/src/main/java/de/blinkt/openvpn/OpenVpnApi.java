@@ -29,6 +29,7 @@ public class OpenVpnApi {
     static void startVpnInternal(Context context, String config, String name, String username, String password, List<String> bypassPackages) throws RemoteException {
         startVpnInternal(context, config, name, username, password, "", bypassPackages);
     }
+
     static void startVpnInternal(Context context, String config, String name, String username, String password, String keyPassword, List<String> bypassPackages) throws RemoteException {
         ConfigParser cp = new ConfigParser();
         try {
@@ -42,13 +43,13 @@ public class OpenVpnApi {
             vp.mUsername = username;
             vp.mPassword = password;
             if(!keyPassword.isEmpty()) vp.mKeyPassword = keyPassword;
-            if(bypassPackages.size() > 0){
+            if(!bypassPackages.isEmpty()){
                 vp.mAllowAppVpnBypass = true;
                 vp.mAllowedAppsVpn = new HashSet<>(bypassPackages);
             }
 
             ProfileManager.setTemporaryProfile(context, vp);
-            VPNLaunchHelper.startOpenVpn(vp, context);
+            VPNLaunchHelper.startOpenVpn(vp, context, "VPN flutter start Job", true);
         } catch (IOException | ConfigParser.ConfigParseError e) {
             throw new RemoteException(e.getMessage());
         }
