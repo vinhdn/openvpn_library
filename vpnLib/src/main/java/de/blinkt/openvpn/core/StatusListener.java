@@ -154,7 +154,10 @@ public class StatusListener implements VpnStatus.LogListener {
 
     private void logExitNotification(ApplicationExitInfo aei, String s) {
         if (aei != null) {
-            LogItem li = new LogItem(LogLevel.DEBUG, s + aei, aei.getTimestamp());
+            LogItem li = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                li = new LogItem(LogLevel.DEBUG, s + aei, aei.getTimestamp());
+            }
             VpnStatus.newLogItemIfUnique(li);
         }
     }

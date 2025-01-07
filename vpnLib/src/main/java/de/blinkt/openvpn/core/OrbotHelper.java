@@ -24,6 +24,7 @@
 
 package de.blinkt.openvpn.core;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -31,6 +32,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Build;
 import android.text.TextUtils;
 
 import java.util.HashSet;
@@ -136,10 +138,16 @@ public class OrbotHelper {
      * @param cb a callback
      * @return the singleton, for chaining
      */
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public synchronized OrbotHelper addStatusCallback(Context c, StatusCallback cb) {
-        if (statusCallbacks.size() == 0) {
-            c.getApplicationContext().registerReceiver(orbotStatusReceiver,
-                    new IntentFilter(OrbotHelper.ACTION_STATUS));
+        if (statusCallbacks.isEmpty()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                c.getApplicationContext().registerReceiver(orbotStatusReceiver,
+                        new IntentFilter(OrbotHelper.ACTION_STATUS), Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                c.getApplicationContext().registerReceiver(orbotStatusReceiver,
+                        new IntentFilter(OrbotHelper.ACTION_STATUS));
+            }
             mContext = c.getApplicationContext();
         }
         if (!checkTorReceier(c))
