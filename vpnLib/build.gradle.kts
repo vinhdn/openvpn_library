@@ -7,7 +7,11 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     id("checkstyle")
+    id("maven-publish")
 }
+
+group = "com.github.vinhdn"
+version = "1.0"
 
 android {
     buildFeatures {
@@ -59,6 +63,20 @@ android {
 
 }
 
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            groupId = "com.github.vinhdn"
+            artifactId = "openvpn_library"
+            version = "1.0"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
+}
+
 dependencies {
     // https://maven.google.com/web/index.html
     implementation(libs.androidx.annotation)
@@ -71,4 +89,6 @@ dependencies {
     testImplementation(libs.kotlin)
     testImplementation(libs.mockito.core)
     testImplementation(libs.robolectric)
+
+    implementation("com.github.jitpack:android-example:1.0.1")
 }
