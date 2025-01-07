@@ -52,7 +52,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -1596,7 +1598,13 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
         Intent intent = new Intent("connectionState");
         intent.putExtra("state", state);
         this.state = state;
-        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+        JSONObject notification = new JSONObject();
+        try {
+            notification.put("state", state);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        de.blinkt.openvpn.NotificationManager.updateNotificationMessage(notification);
     }
     //sending message to main activity
     private void sendMessage(String duration, String lastPacketReceive, String byteIn, String byteOut) {
@@ -1605,7 +1613,16 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
         intent.putExtra("lastPacketReceive", lastPacketReceive);
         intent.putExtra("byteIn", byteIn);
         intent.putExtra("byteOut", byteOut);
-        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+        JSONObject notification = new JSONObject();
+        try {
+            notification.put("duration", duration);
+            notification.put("lastPacketReceive", lastPacketReceive);
+            notification.put("byteIn", byteIn);
+            notification.put("byteOut", byteOut);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        de.blinkt.openvpn.NotificationManager.updateNotificationMessage(notification);
     }
 
     public class LocalBinder extends Binder {

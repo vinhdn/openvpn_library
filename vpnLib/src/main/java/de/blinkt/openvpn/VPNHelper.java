@@ -10,7 +10,9 @@ import android.os.Bundle;
 import android.os.RemoteException;
 
 import androidx.annotation.Nullable;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.Observer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,6 +25,7 @@ import de.blinkt.openvpn.core.VpnStatus;
 
 public class VPNHelper extends Activity {
     public Activity activity;
+    public LifecycleOwner lifecycleOwner;
     public static OnVPNStatusChangeListener listener;
     private static String config;
     private static boolean vpnStart;
@@ -40,15 +43,16 @@ public class VPNHelper extends Activity {
         return vpnStart;
     }
 
-    public VPNHelper(Activity activity) {
+    public VPNHelper(Activity activity, LifecycleOwner lifecycleOwner) {
         this.activity = activity;
+        this.lifecycleOwner = lifecycleOwner;
         VPNHelper.vpnStart = false;
         VpnStatus.initLogCache(activity.getCacheDir());
     }
 
     public void setOnVPNStatusChangeListener(OnVPNStatusChangeListener listener) {
         VPNHelper.listener = listener;
-        LocalBroadcastManager.getInstance(activity).registerReceiver(broadcastReceiver, new IntentFilter("connectionState"));
+        NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
     }
 
     public void startVPN() {
@@ -80,18 +84,18 @@ public class VPNHelper extends Activity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.launchvpn);
-        LocalBroadcastManager.getInstance(activity).registerReceiver(broadcastReceiver, new IntentFilter("connectionState"));
+        NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
         startVPN();
     }
 
     public void stopVPN() {
 //        OpenVPNThread.stop();
+//        OpenVpn
     }
 
     private void connect() {
         try {
             OpenVpnApi.startVpn(activity, config,name, username, password, keyPassword, bypassPackages);
-            vpnStart = true;
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -138,6 +142,42 @@ public class VPNHelper extends Activity {
     }
 
 
+    private final Observer<JSONObject> notificationObserver = new Observer<JSONObject>() {
+        @Override
+        public void onChanged(JSONObject object) {
+            try {
+                if (object.has("state")) {
+                    setStage(object.getString("state"));
+                }
+                String duration = object.has("duration") ? object.getString("duration") : null;
+                String lastPacketReceive = object.has("lastPacketReceive") ? object.getString("lastPacketReceive") : null;
+                String byteIn = object.has("byteIn") ? object.getString("byteIn") : null;
+                String byteOut = object.has("byteOut") ? object.getString("byteOut") : null;
+
+                if (duration == null) duration = "00:00:00";
+                if (lastPacketReceive == null) lastPacketReceive = "0";
+                if (byteIn == null) byteIn = " ";
+                if (byteOut == null) byteOut = " ";
+                JSONObject jsonObject = new JSONObject();
+
+                try {
+                    jsonObject.put("connected_on", duration);
+                    jsonObject.put("last_packet_receive", lastPacketReceive);
+                    jsonObject.put("byte_in", byteIn);
+                    jsonObject.put("byte_out", byteOut);
+
+                    status = jsonObject;
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                VPNHelper.listener.onConnectionStatusChanged(duration, lastPacketReceive, byteIn, byteOut);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
     BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -178,13 +218,13 @@ public class VPNHelper extends Activity {
 
     @Override
     public void onDetachedFromWindow() {
-        LocalBroadcastManager.getInstance(activity).unregisterReceiver(broadcastReceiver);
+        NotificationManager.getNotificationLiveData().removeObserver(notificationObserver);
         super.onDetachedFromWindow();
     }
 
     @Override
     public void onAttachedToWindow() {
-        LocalBroadcastManager.getInstance(activity).registerReceiver(broadcastReceiver, new IntentFilter("connectionState"));
+        NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
         super.onAttachedToWindow();
     }
 
