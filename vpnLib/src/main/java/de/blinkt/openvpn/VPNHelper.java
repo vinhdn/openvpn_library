@@ -19,11 +19,12 @@ import org.json.JSONObject;
 
 import java.util.List;
 
+import de.blinkt.openvpn.core.ConnectionStatus;
 import de.blinkt.openvpn.core.OpenVPNService;
 import de.blinkt.openvpn.core.OpenVPNThread;
 import de.blinkt.openvpn.core.VpnStatus;
 
-public class VPNHelper extends Activity {
+public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnStatus.ByteCountListener {
     public Activity activity;
     public LifecycleOwner lifecycleOwner;
     public static OnVPNStatusChangeListener listener;
@@ -48,6 +49,8 @@ public class VPNHelper extends Activity {
         this.lifecycleOwner = lifecycleOwner;
         VPNHelper.vpnStart = false;
         VpnStatus.initLogCache(activity.getCacheDir());
+        VpnStatus.addStateListener(this);
+        VpnStatus.addByteCountListener(this);
     }
 
     public void setOnVPNStatusChangeListener(OnVPNStatusChangeListener listener) {
@@ -219,12 +222,16 @@ public class VPNHelper extends Activity {
     @Override
     public void onDetachedFromWindow() {
         NotificationManager.getNotificationLiveData().removeObserver(notificationObserver);
+        VpnStatus.removeStateListener(this);
+        VpnStatus.removeByteCountListener(this);
         super.onDetachedFromWindow();
     }
 
     @Override
     public void onAttachedToWindow() {
         NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
+        VpnStatus.addStateListener(this);
+        VpnStatus.addByteCountListener(this);
         super.onAttachedToWindow();
     }
 
@@ -239,5 +246,20 @@ public class VPNHelper extends Activity {
                 VPNHelper.listener.onVPNStatusChanged("denied");
             }
         }
+    }
+
+    @Override
+    public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent) {
+
+    }
+
+    @Override
+    public void setConnectedVPN(String uuid) {
+
+    }
+
+    @Override
+    public void updateByteCount(long in, long out, long diffIn, long diffOut) {
+
     }
 }
