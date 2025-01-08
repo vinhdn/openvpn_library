@@ -679,10 +679,10 @@ public class OpenVpnManagementThread implements Runnable, OpenVPNManagement {
             int p1 = argument.indexOf('\'');
             int p2 = argument.indexOf('\'', p1 + 1);
             needed = argument.substring(p1 + 1, p2);
-            if (argument.startsWith("Verification Failed")) {
-                proccessPWFailed(needed, argument.substring(p2 + 1));
-                return;
-            }
+//            if (argument.startsWith("Verification Failed")) {
+//                proccessPWFailed(needed, argument.substring(p2 + 1));
+//                return;
+//            }
         } catch (StringIndexOutOfBoundsException sioob) {
             VpnStatus.logError("Could not parse management Password command: " + argument);
             return;
@@ -707,6 +707,7 @@ public class OpenVpnManagementThread implements Runnable, OpenVPNManagement {
                 }
                 break;
         }
+        Log.d("OpenVpnManage", String.format("Openvpn needed '%s' %s", needed, pw));
         if (pw != null) {
             if (username !=null) {
                 String usercmd = String.format("username '%s' %s\n",

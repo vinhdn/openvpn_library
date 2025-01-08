@@ -96,8 +96,8 @@ public class VpnProfile implements Serializable, Cloneable {
     private static final String EXTRA_SALTLEN = "de.blinkt.openvpn.api.SALTLEN";
     private static final String EXTRA_NEEDS_DIGEST = "de.blinkt.openvpn.api.NEEDS_DIGEST";
     private static final String EXTRA_DIGEST = "de.blinkt.openvpn.api.DIGEST";
-    public static String DEFAULT_DNS1 = "9.9.9.9";
-    public static String DEFAULT_DNS2 = "2620:fe::fe";
+    public static String DEFAULT_DNS1 = "8.8.8.8";
+    public static String DEFAULT_DNS2 = "8.8.4.4";
     // variable named wrong and should haven beeen transient
     // but needs to keep wrong name to guarante loading of old
     // profiles
@@ -110,7 +110,7 @@ public class VpnProfile implements Serializable, Cloneable {
     public String mTLSAuthFilename;
     public String mClientKeyFilename;
     public String mCaFilename;
-    public boolean mUseLzo = false;
+    public boolean mUseLzo = true;
     public String mPKCS12Filename;
     public String mPKCS12Password;
     public boolean mUseTLSAuth = false;
@@ -211,9 +211,7 @@ public class VpnProfile implements Serializable, Cloneable {
     }
 
     public static boolean doUseOpenVPN3(Context c) {
-        SharedPreferences prefs = Preferences.getDefaultSharedPreferences(c);
-        boolean useOpenVPN3 = prefs.getBoolean("ovpn3", false);
-        return useOpenVPN3;
+        return false;
     }
 
     //! Put inline data inline and other data as normal escaped filename

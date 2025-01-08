@@ -1,5 +1,6 @@
 package de.blinkt.openvpn;
 
+import static android.app.Activity.RESULT_OK;
 import static de.blinkt.openvpn.core.OpenVPNService.humanReadableByteCount;
 
 import android.app.Activity;
@@ -28,16 +29,16 @@ import de.blinkt.openvpn.core.OpenVPNService;
 import de.blinkt.openvpn.core.OpenVPNThread;
 import de.blinkt.openvpn.core.VpnStatus;
 
-public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnStatus.ByteCountListener {
+public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountListener {
     public Activity activity;
     public LifecycleOwner lifecycleOwner;
     public static OnVPNStatusChangeListener listener;
     private static String config;
     private static boolean vpnStart;
     private static Intent profileIntent;
-    private static String username;
-    private static String password;
-    private static String keyPassword;
+    @Nullable private static String username;
+    @Nullable private static String password;
+    @Nullable private static String keyPassword;
     private static String name;
     private static List<String> bypassPackages;
 
@@ -81,25 +82,17 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
     public void startVPN(String config, String username, String password, String keyPassword, String name, List<String> bypass) {
         VPNHelper.config = config;
         VPNHelper.profileIntent = VpnService.prepare(activity);
-        VPNHelper.username = username;
-        VPNHelper.password = password;
-        VPNHelper.keyPassword = keyPassword;
+        VPNHelper.username = (username == null || username.isEmpty()) ? null : username;
+        VPNHelper.password = (password == null || password.isEmpty()) ? null : password;
+        VPNHelper.keyPassword = (keyPassword == null || keyPassword.isEmpty()) ? null : keyPassword;
         VPNHelper.name = name;
         VPNHelper.bypassPackages = bypass;
 
         if (profileIntent != null) {
-            activity.startActivityForResult(VPNHelper.profileIntent, 1);
+            activity.startActivityForResult(VPNHelper.profileIntent, 24);
         }else{
             startVPN();
         }
-    }
-
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.launchvpn);
-        NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
-        startVPN();
     }
 
     public void stopVPN() {
@@ -230,28 +223,19 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
         }
     };
 
-    @Override
     public void onDetachedFromWindow() {
         NotificationManager.getNotificationLiveData().removeObserver(notificationObserver);
         VpnStatus.removeStateListener(this);
         VpnStatus.removeByteCountListener(this);
-        super.onDetachedFromWindow();
     }
 
-    @Override
     public void onAttachedToWindow() {
         NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
         VpnStatus.addStateListener(this);
         VpnStatus.addByteCountListener(this);
-        String status = OpenVPNService.getStatus();
-        if (status != null) setStage(status);
-        super.onAttachedToWindow();
     }
 
-    @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == 1) {
             if (resultCode == RESULT_OK) {
                 startVPN();
@@ -263,6 +247,10 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
 
     @Override
     public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent) {
+        if (activity == null) return;
+        if (lifecycleOwner == null) return;
+        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.DESTROYED) return;
+        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.INITIALIZED) return;
         setStage(state);
     }
 
@@ -274,10 +262,14 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
 
     @Override
     public void updateByteCount(long in, long out, long diffIn, long diffOut) {
-        byteIn = String.format("↓%2$s", getString(R.string.statusline_bytecount),
-                humanReadableByteCount(in,false, getResources())) + " - " + humanReadableByteCount(diffIn / OpenVPNManagement.mBytecountInterval, false, getResources()) + "/s";
-        byteOut = String.format("↑%2$s", getString(R.string.statusline_bytecount),
-                humanReadableByteCount(out, false,getResources())) + " - " + humanReadableByteCount(diffOut / OpenVPNManagement.mBytecountInterval, false, getResources()) + "/s";
+        if (activity == null) return;
+        if (lifecycleOwner == null) return;
+        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.DESTROYED) return;
+        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.INITIALIZED) return;
+        byteIn = String.format("↓%2$s", activity.getString(R.string.statusline_bytecount),
+                humanReadableByteCount(in,false, activity.getResources())) + " - " + humanReadableByteCount(diffIn / OpenVPNManagement.mBytecountInterval, false, activity.getResources()) + "/s";
+        byteOut = String.format("↑%2$s", activity.getString(R.string.statusline_bytecount),
+                humanReadableByteCount(out, false,activity.getResources())) + " - " + humanReadableByteCount(diffOut / OpenVPNManagement.mBytecountInterval, false, activity.getResources()) + "/s";
         long time = Calendar.getInstance().getTimeInMillis() - c;
         lastPacketReceive = Integer.parseInt(convertTwoDigit((int) (time / 1000) % 60)) - Integer.parseInt(seconds);
         seconds = convertTwoDigit((int) (time / 1000) % 60);

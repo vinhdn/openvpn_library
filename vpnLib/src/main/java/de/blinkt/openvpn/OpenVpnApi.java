@@ -7,6 +7,8 @@ import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashSet;
@@ -21,7 +23,7 @@ public class OpenVpnApi {
     private static final String TAG = "OpenVpnApi";
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
-    public static void startVpn(Context context, String config, String name, String username, String password, String keyPassword, List<String> bypassPackages) throws RemoteException {
+    public static void startVpn(Context context, String config, String name, String username, String password, @Nullable String keyPassword, List<String> bypassPackages) throws RemoteException {
         if (TextUtils.isEmpty(config)) throw new RemoteException("config is empty");
         startVpnInternal(context, config, name, username, password, keyPassword, bypassPackages);
     }
@@ -30,7 +32,7 @@ public class OpenVpnApi {
         startVpnInternal(context, config, name, username, password, "", bypassPackages);
     }
 
-    static void startVpnInternal(Context context, String config, String name, String username, String password, String keyPassword, List<String> bypassPackages) throws RemoteException {
+    static void startVpnInternal(Context context, String config, String name, String username, String password, @Nullable String keyPassword, List<String> bypassPackages) throws RemoteException {
         ConfigParser cp = new ConfigParser();
         try {
             cp.parseConfig(new StringReader(config));
@@ -42,8 +44,10 @@ public class OpenVpnApi {
             vp.mProfileCreator = context.getPackageName();
             vp.mUsername = username;
             vp.mPassword = password;
-            if(!keyPassword.isEmpty()) vp.mKeyPassword = keyPassword;
-            if(!bypassPackages.isEmpty()){
+            Log.d("OpenVpnApi", "startVpnInternal: " + vp.mName);
+            Log.d("OpenVpnApi", "startVpnInternal: " + vp.mName + " vpn pass type " + vp.mAuthenticationType);
+            if(keyPassword != null && !keyPassword.isEmpty()) vp.mKeyPassword = keyPassword;
+            if(bypassPackages != null && !bypassPackages.isEmpty()) {
                 vp.mAllowAppVpnBypass = true;
                 vp.mAllowedAppsVpn = new HashSet<>(bypassPackages);
             }
