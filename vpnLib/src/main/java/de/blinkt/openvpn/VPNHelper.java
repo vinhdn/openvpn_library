@@ -1,5 +1,7 @@
 package de.blinkt.openvpn;
 
+import static de.blinkt.openvpn.core.OpenVPNService.humanReadableByteCount;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,9 +19,11 @@ import androidx.lifecycle.Observer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Calendar;
 import java.util.List;
 
 import de.blinkt.openvpn.core.ConnectionStatus;
+import de.blinkt.openvpn.core.OpenVPNManagement;
 import de.blinkt.openvpn.core.OpenVPNService;
 import de.blinkt.openvpn.core.OpenVPNThread;
 import de.blinkt.openvpn.core.VpnStatus;
@@ -39,6 +43,13 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
 
     public JSONObject status = new JSONObject();
 
+    private String byteIn, byteOut;
+    private String duration;
+
+    long c = Calendar.getInstance().getTimeInMillis();
+    long time;
+    int lastPacketReceive = 0;
+    String seconds = "0", minutes, hours;
 
     public boolean isConnected(){
         return vpnStart;
@@ -232,6 +243,8 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
         NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
         VpnStatus.addStateListener(this);
         VpnStatus.addByteCountListener(this);
+        String status = OpenVPNService.getStatus();
+        if (status != null) setStage(status);
         super.onAttachedToWindow();
     }
 
@@ -250,7 +263,7 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
 
     @Override
     public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent) {
-
+        setStage(state);
     }
 
     @Override
@@ -258,8 +271,41 @@ public class VPNHelper extends Activity implements VpnStatus.StateListener, VpnS
 
     }
 
+
     @Override
     public void updateByteCount(long in, long out, long diffIn, long diffOut) {
+        byteIn = String.format("↓%2$s", getString(R.string.statusline_bytecount),
+                humanReadableByteCount(in,false, getResources())) + " - " + humanReadableByteCount(diffIn / OpenVPNManagement.mBytecountInterval, false, getResources()) + "/s";
+        byteOut = String.format("↑%2$s", getString(R.string.statusline_bytecount),
+                humanReadableByteCount(out, false,getResources())) + " - " + humanReadableByteCount(diffOut / OpenVPNManagement.mBytecountInterval, false, getResources()) + "/s";
+        long time = Calendar.getInstance().getTimeInMillis() - c;
+        lastPacketReceive = Integer.parseInt(convertTwoDigit((int) (time / 1000) % 60)) - Integer.parseInt(seconds);
+        seconds = convertTwoDigit((int) (time / 1000) % 60);
+        minutes = convertTwoDigit((int) ((time / (1000 * 60)) % 60));
+        hours = convertTwoDigit((int) ((time / (1000 * 60 * 60)) % 24));
+        duration = hours + ":" + minutes + ":" + seconds;
+        lastPacketReceive = checkPacketReceive(lastPacketReceive);
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("connected_on", duration);
+            jsonObject.put("last_packet_receive", lastPacketReceive);
+            jsonObject.put("byte_in", byteIn);
+            jsonObject.put("byte_out", byteOut);
 
+            status = jsonObject;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        VPNHelper.listener.onConnectionStatusChanged(duration, String.valueOf(lastPacketReceive), byteIn, byteOut);
+    }
+
+    public int checkPacketReceive(int value) {
+        value -= 2;
+        return Math.max(value, 0);
+    }
+    public String convertTwoDigit(int value) {
+        if (value < 10) return "0" + value;
+        else return value + "";
     }
 }
