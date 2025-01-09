@@ -20,4 +20,6 @@
 -keep interface de.blinkt.openvpn.api.IOpenVPNStatusCallback { *; }
 -keep class de.blinkt.openvpn.api.APIVpnProfile { *; }
 -keep class com.github.mikephil.charting.** { *; }
+-keep class de.blinkt.openvpn.api.RemoteAction { *; }
+-keep class de.blinkt.openvpn.core.ICSOpenVPNApplication { *; }
 -dontwarn io.realm.**

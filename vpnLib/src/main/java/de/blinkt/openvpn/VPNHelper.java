@@ -71,9 +71,8 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
     }
 
     public void startVPN() {
-        if (!vpnStart) connect();
+        connect();
     }
-
 
     public void startVPN(String config, String username, String password, String name, List<String> bypass) {
         startVPN(config, username, password, "", name, bypass);
@@ -96,8 +95,6 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
     }
 
     public void stopVPN() {
-//        OpenVPNThread.stop();
-//        OpenVpn
     }
 
     private void connect() {
@@ -115,10 +112,10 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
                 output = "connected";
                 vpnStart = true;
                 break;
+            case "NOPROCESS":
             case "DISCONNECTED":
                 output = "disconnected";
                 vpnStart = false;
-//                OpenVPNService.setDefaultStatus();
                 break;
             case "WAIT":
                 output = "wait_connection";
@@ -131,6 +128,7 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
                 break;
             case "NONETWORK":
                 output = "no_connection";
+                vpnStart = false;
                 break;
             case "CONNECTING":
                 output = "connecting";
@@ -140,10 +138,14 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
                 break;
             case "DENIED":
                 output = "denied";
+                vpnStart = false;
                 break;
             case "ERROR":
                 output = "error";
+                vpnStart = false;
                 break;
+            default:
+                vpnStart = false;
         }
         if (listener != null) listener.onVPNStatusChanged(output);
     }
@@ -289,6 +291,7 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
             e.printStackTrace();
         }
 
+        if(VPNHelper.listener != null)
         VPNHelper.listener.onConnectionStatusChanged(duration, String.valueOf(lastPacketReceive), byteIn, byteOut);
     }
 

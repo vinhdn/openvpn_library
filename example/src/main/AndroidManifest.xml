@@ -29,6 +29,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name="de.blinkt.openvpn.api.RemoteAction"
+            android:launchMode="singleInstance"
+            android:autoRemoveFromRecents="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=".LaunchVPN"
+            android:theme="@style/blinkt.dialog"
+            android:noHistory="true"
+            />
+
+        <activity-alias
+            android:name=".api.DisconnectVPN"
+            android:exported="true"
+            android:targetActivity="de.blinkt.openvpn.api.RemoteAction" />
     </application>
 
 </manifest>

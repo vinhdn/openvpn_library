@@ -1,5 +1,8 @@
 package com.vinhdn.vpnlib.example
 
+import android.content.ComponentName
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.vinhdn.vpnlib.example.ui.theme.Openvpn_libraryTheme
 import de.blinkt.openvpn.OnVPNStatusChangeListener
 import de.blinkt.openvpn.VPNHelper
+import de.blinkt.openvpn.api.RemoteAction
 
 class MainActivity : ComponentActivity() {
 
@@ -75,6 +79,20 @@ class MainActivity : ComponentActivity() {
                             vpnHelper.startVPN(defaultConfig, "vpn", "vpn", "", "Korea", listOf())
                         }) {
                             Text(text = "Connect")
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(onClick = {
+                            val intentDisconnect = Intent(this@MainActivity, RemoteAction::class.java)
+                            intentDisconnect.setComponent(
+                                ComponentName.createRelative(
+                                    this@MainActivity,
+                                    ".api.DisconnectVPN"
+                                )
+                            )
+                            intentDisconnect.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intentDisconnect)
+                        }) {
+                            Text(text = "Disconnect")
                         }
                     }
                 }
