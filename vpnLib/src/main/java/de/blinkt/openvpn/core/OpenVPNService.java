@@ -84,25 +84,25 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     private String byteIn, byteOut;
     private String duration;
 
-    public static final String START_SERVICE = "de.blinkt.openvpn.START_SERVICE";
-    public static final String START_SERVICE_STICKY = "de.blinkt.openvpn.START_SERVICE_STICKY";
-    public static final String ALWAYS_SHOW_NOTIFICATION = "de.blinkt.openvpn.NOTIFICATION_ALWAYS_VISIBLE";
+    public static final String START_SERVICE = "com.htv.openvpn.START_SERVICE";
+    public static final String START_SERVICE_STICKY = "com.htv.openvpn.START_SERVICE_STICKY";
+    public static final String ALWAYS_SHOW_NOTIFICATION = "com.htv.openvpn.NOTIFICATION_ALWAYS_VISIBLE";
 
-    public static final String EXTRA_DO_NOT_REPLACE_RUNNING_VPN = "de.blinkt.openvpn.DO_NOT_REPLACE_RUNNING_VPN";
+    public static final String EXTRA_DO_NOT_REPLACE_RUNNING_VPN = "com.htv.openvpn.DO_NOT_REPLACE_RUNNING_VPN";
 
-    public static final String EXTRA_START_REASON = "de.blinkt.openvpn.startReason";
+    public static final String EXTRA_START_REASON = "com.htv.openvpn.startReason";
 
-    public static final String DISCONNECT_VPN = "de.blinkt.openvpn.DISCONNECT_VPN";
-    public static final String NOTIFICATION_CHANNEL_BG_ID = "openvpn_bg";
-    public static final String NOTIFICATION_CHANNEL_NEWSTATUS_ID = "openvpn_newstat";
-    public static final String NOTIFICATION_CHANNEL_USERREQ_ID = "openvpn_userreq";
+    public static final String DISCONNECT_VPN = "com.htv.openvpn.DISCONNECT_VPN";
+    public static final String NOTIFICATION_CHANNEL_BG_ID = "hvtvpn_bg";
+    public static final String NOTIFICATION_CHANNEL_NEWSTATUS_ID = "hvtvpn_newstat";
+    public static final String NOTIFICATION_CHANNEL_USERREQ_ID = "hvtvpn_userreq";
 
     public static final String VPNSERVICE_TUN = "vpnservice-tun";
     public final static String ORBOT_PACKAGE_NAME = "org.torproject.android";
-    public static final String EXTRA_CHALLENGE_TXT = "de.blinkt.openvpn.core.CR_TEXT_CHALLENGE";
-    public static final String EXTRA_CHALLENGE_OPENURL = "de.blinkt.openvpn.core.OPENURL_CHALLENGE";
-    private static final String PAUSE_VPN = "de.blinkt.openvpn.PAUSE_VPN";
-    private static final String RESUME_VPN = "de.blinkt.openvpn.RESUME_VPN";
+    public static final String EXTRA_CHALLENGE_TXT = "com.htv.openvpn.core.CR_TEXT_CHALLENGE";
+    public static final String EXTRA_CHALLENGE_OPENURL = "com.htv.openvpn.core.OPENURL_CHALLENGE";
+    private static final String PAUSE_VPN = "com.htv.openvpn.PAUSE_VPN";
+    private static final String RESUME_VPN = "com.htv.openvpn.RESUME_VPN";
     private static final int PRIORITY_MIN = -2;
     private static final int PRIORITY_DEFAULT = 0;
     private static final int PRIORITY_MAX = 2;
@@ -438,25 +438,15 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     }
 
     private int getIconByConnectionStatus(ConnectionStatus level) {
-        switch (level) {
-            case LEVEL_CONNECTED:
-                return R.drawable.ic_stat_vpn;
-            case LEVEL_AUTH_FAILED:
-            case LEVEL_NONETWORK:
-            case LEVEL_NOTCONNECTED:
-                return R.drawable.ic_stat_vpn_offline;
-            case LEVEL_CONNECTING_NO_SERVER_REPLY_YET:
-            case LEVEL_WAITING_FOR_USER_INPUT:
-                return R.drawable.ic_stat_vpn_outline;
-            case LEVEL_CONNECTING_SERVER_REPLIED:
-                return R.drawable.ic_stat_vpn_empty_halo;
-            case LEVEL_VPNPAUSED:
-                return android.R.drawable.ic_media_pause;
-            case UNKNOWN_LEVEL:
-            default:
-                return R.drawable.ic_stat_vpn;
-
-        }
+        return switch (level) {
+            case LEVEL_AUTH_FAILED, LEVEL_NONETWORK, LEVEL_NOTCONNECTED ->
+                    R.drawable.ic_stat_vpn_offline;
+            case LEVEL_CONNECTING_NO_SERVER_REPLY_YET, LEVEL_WAITING_FOR_USER_INPUT ->
+                    R.drawable.ic_stat_vpn_outline;
+            case LEVEL_CONNECTING_SERVER_REPLIED -> R.drawable.ic_stat_vpn_empty_halo;
+            case LEVEL_VPNPAUSED -> android.R.drawable.ic_media_pause;
+            default -> R.drawable.ic_stat_vpn;
+        };
     }
 
     private void jbNotificationExtras(int priority,
