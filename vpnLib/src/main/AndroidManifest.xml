@@ -19,7 +19,6 @@
     <application
         android:name=".core.ICSOpenVPNApplication"
         android:supportsRtl="true"
-        android:theme="@style/blinkt"
         tools:ignore="UnusedAttribute">
         <meta-data
             android:name="android.content.APP_RESTRICTIONS"
@@ -95,12 +94,6 @@
             android:taskAffinity=".LaunchVPN"
             android:theme="@style/blinkt.dialog"
             android:exported="true">
-
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
         </activity>
         <!--
         <receiver android:name="core.GetRestrictionReceiver">
