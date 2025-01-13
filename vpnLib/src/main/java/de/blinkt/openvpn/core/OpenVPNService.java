@@ -856,7 +856,6 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
 
     @Override
     public void onDestroy() {
-        sendMessage("DISCONNECTED");
         synchronized (mProcessLock) {
             if (mProcessThread != null) {
                 mManagement.stopVPN(true);
@@ -1372,7 +1371,7 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     }
 
     @Override
-    public void updateState(String state, String logmessage, int resid, ConnectionStatus level, Intent intent) {
+    public void updateState(String state, String logmessage, int resid, ConnectionStatus level, Intent intent, long lastConnectedTime) {
         // If the process is not running, ignore any state,
         // Notification should be invisible in this state
 
@@ -1413,7 +1412,6 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
         vpnstatus.putExtra("status", level.toString());
         vpnstatus.putExtra("detailstatus", state);
         sendBroadcast(vpnstatus, permission.ACCESS_NETWORK_STATE);
-        sendMessage(state);
     }
 
     long c = Calendar.getInstance().getTimeInMillis();
@@ -1422,7 +1420,7 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     String seconds = "0", minutes, hours;
 
     @Override
-    public void updateByteCount(long in, long out, long diffIn, long diffOut) {
+    public void updateByteCount(long in, long out, long diffIn, long diffOut, long lastConnectedTime) {
         TotalTraffic.calcTraffic(this, in, out, diffIn, diffOut);
         if (mDisplayBytecount) {
             String netstat = String.format(getString(R.string.statusline_bytecount),
@@ -1444,7 +1442,6 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
             hours = convertTwoDigit((int) ((time / (1000 * 60 * 60)) % 24));
             duration = hours + ":" + minutes + ":" + seconds;
             lastPacketReceive = checkPacketReceive(lastPacketReceive);
-            sendMessage(duration, String.valueOf(lastPacketReceive), byteIn, byteOut);
         }
     }
 
@@ -1587,14 +1584,13 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     private void sendMessage(String state) {
         Intent intent = new Intent("connectionState");
         intent.putExtra("state", state);
-        this.state = state;
+        OpenVPNService.state = state;
         JSONObject notification = new JSONObject();
         try {
             notification.put("state", state);
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        de.blinkt.openvpn.NotificationManager.updateNotificationMessage(notification);
     }
     //sending message to main activity
     private void sendMessage(String duration, String lastPacketReceive, String byteIn, String byteOut) {
@@ -1612,7 +1608,6 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        de.blinkt.openvpn.NotificationManager.updateNotificationMessage(notification);
     }
 
     public class LocalBinder extends Binder {

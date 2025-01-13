@@ -67,7 +67,6 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
 
     public void setOnVPNStatusChangeListener(OnVPNStatusChangeListener listener) {
         VPNHelper.listener = listener;
-        NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
     }
 
     public void startVPN() {
@@ -106,7 +105,7 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
     }
 
     private void setStage(String stage) {
-        String output = stage;
+        final String output;
         switch (stage.toUpperCase()) {
             case "CONNECTED":
                 output = "connected";
@@ -145,94 +144,22 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
                 vpnStart = false;
                 break;
             default:
+                output = stage.toLowerCase();
                 vpnStart = false;
         }
-        if (listener != null) listener.onVPNStatusChanged(output);
+        if (activity != null) {
+            activity.runOnUiThread(() -> {
+                if (VPNHelper.listener != null) VPNHelper.listener.onVPNStatusChanged(output);
+            });
+        }
     }
 
-
-    private final Observer<JSONObject> notificationObserver = new Observer<JSONObject>() {
-        @Override
-        public void onChanged(JSONObject object) {
-            try {
-                if (object.has("state")) {
-                    setStage(object.getString("state"));
-                }
-                String duration = object.has("duration") ? object.getString("duration") : null;
-                String lastPacketReceive = object.has("lastPacketReceive") ? object.getString("lastPacketReceive") : null;
-                String byteIn = object.has("byteIn") ? object.getString("byteIn") : null;
-                String byteOut = object.has("byteOut") ? object.getString("byteOut") : null;
-
-                if (duration == null) duration = "00:00:00";
-                if (lastPacketReceive == null) lastPacketReceive = "0";
-                if (byteIn == null) byteIn = " ";
-                if (byteOut == null) byteOut = " ";
-                JSONObject jsonObject = new JSONObject();
-
-                try {
-                    jsonObject.put("connected_on", duration);
-                    jsonObject.put("last_packet_receive", lastPacketReceive);
-                    jsonObject.put("byte_in", byteIn);
-                    jsonObject.put("byte_out", byteOut);
-
-                    status = jsonObject;
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                VPNHelper.listener.onConnectionStatusChanged(duration, lastPacketReceive, byteIn, byteOut);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    };
-
-    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            try {
-                if (intent.getStringExtra("state") != null) {
-                    setStage(intent.getStringExtra("state"));
-                }
-                String duration = intent.getStringExtra("duration");
-                String lastPacketReceive = intent.getStringExtra("lastPacketReceive");
-                String byteIn = intent.getStringExtra("byteIn");
-                String byteOut = intent.getStringExtra("byteOut");
-
-                if (duration == null) duration = "00:00:00";
-                if (lastPacketReceive == null) lastPacketReceive = "0";
-                if (byteIn == null) byteIn = " ";
-                if (byteOut == null) byteOut = " ";
-                JSONObject jsonObject = new JSONObject();
-
-                try {
-                    jsonObject.put("connected_on", duration);
-                    jsonObject.put("last_packet_receive", lastPacketReceive);
-                    jsonObject.put("byte_in", byteIn);
-                    jsonObject.put("byte_out", byteOut);
-
-                    status = jsonObject;
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                VPNHelper.listener.onConnectionStatusChanged(duration, lastPacketReceive, byteIn, byteOut);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-        }
-    };
-
     public void onDetachedFromWindow() {
-        NotificationManager.getNotificationLiveData().removeObserver(notificationObserver);
         VpnStatus.removeStateListener(this);
         VpnStatus.removeByteCountListener(this);
     }
 
     public void onAttachedToWindow() {
-        NotificationManager.getNotificationLiveData().observe(lifecycleOwner, notificationObserver);
         VpnStatus.addStateListener(this);
         VpnStatus.addByteCountListener(this);
     }
@@ -248,11 +175,9 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
     }
 
     @Override
-    public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent) {
+    public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent, long lastConnectedTime) {
         if (activity == null) return;
         if (lifecycleOwner == null) return;
-        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.DESTROYED) return;
-        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.INITIALIZED) return;
         setStage(state);
     }
 
@@ -263,16 +188,15 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
 
 
     @Override
-    public void updateByteCount(long in, long out, long diffIn, long diffOut) {
+    public void updateByteCount(long in, long out, long diffIn, long diffOut, long lastConnectedTime) {
         if (activity == null) return;
         if (lifecycleOwner == null) return;
-        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.DESTROYED) return;
-        if(lifecycleOwner.getLifecycle().getCurrentState() == Lifecycle.State.INITIALIZED) return;
         byteIn = String.format("↓%2$s", activity.getString(R.string.statusline_bytecount),
                 humanReadableByteCount(in,false, activity.getResources())) + " - " + humanReadableByteCount(diffIn / OpenVPNManagement.mBytecountInterval, false, activity.getResources()) + "/s";
         byteOut = String.format("↑%2$s", activity.getString(R.string.statusline_bytecount),
                 humanReadableByteCount(out, false,activity.getResources())) + " - " + humanReadableByteCount(diffOut / OpenVPNManagement.mBytecountInterval, false, activity.getResources()) + "/s";
-        long time = Calendar.getInstance().getTimeInMillis() - c;
+        long time = Calendar.getInstance().getTimeInMillis() - lastConnectedTime;
+        if(time < 0) time = 0;
         lastPacketReceive = Integer.parseInt(convertTwoDigit((int) (time / 1000) % 60)) - Integer.parseInt(seconds);
         seconds = convertTwoDigit((int) (time / 1000) % 60);
         minutes = convertTwoDigit((int) ((time / (1000 * 60)) % 60));
@@ -291,8 +215,12 @@ public class VPNHelper implements VpnStatus.StateListener, VpnStatus.ByteCountLi
             e.printStackTrace();
         }
 
-        if(VPNHelper.listener != null)
-        VPNHelper.listener.onConnectionStatusChanged(duration, String.valueOf(lastPacketReceive), byteIn, byteOut);
+        if(activity != null) {
+            activity.runOnUiThread(() -> {
+                if (VPNHelper.listener != null)
+                    VPNHelper.listener.onConnectionStatusChanged(duration, String.valueOf(lastPacketReceive), byteIn, byteOut);
+            });
+        }
     }
 
     public int checkPacketReceive(int value) {

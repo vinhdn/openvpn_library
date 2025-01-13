@@ -364,7 +364,7 @@ public class ExternalOpenVPNService extends Service implements StateListener {
     }
 
     @Override
-    public void updateState(String state, String logmessage, int resid, ConnectionStatus level, Intent intent) {
+    public void updateState(String state, String logmessage, int resid, ConnectionStatus level, Intent intent, long lastConnectedTime) {
         mMostRecentState = new UpdateMessage(state, logmessage, level);
         if (ProfileManager.getLastConnectedVpn() != null)
             mMostRecentState.vpnUUID = ProfileManager.getLastConnectedVpn().getUUIDString();

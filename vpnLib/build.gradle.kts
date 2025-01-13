@@ -82,7 +82,6 @@ dependencies {
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.lifecycle.livedata)
 
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.junit)

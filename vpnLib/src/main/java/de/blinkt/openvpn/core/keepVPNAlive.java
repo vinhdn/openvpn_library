@@ -66,7 +66,7 @@ public class keepVPNAlive extends JobService implements VpnStatus.StateListener 
 
     @Override
     public void updateState(String state, String logmessage,
-                            int localizedResId, ConnectionStatus level, Intent Intent) {
+                            int localizedResId, ConnectionStatus level, Intent Intent, long lastConnectedTime) {
         mLevel = level;
     }
 

@@ -134,7 +134,7 @@ public class OpenVPNStatusService extends Service implements VpnStatus.LogListen
     }
 
     @Override
-    public void updateByteCount(long in, long out, long diffIn, long diffOut) {
+    public void updateByteCount(long in, long out, long diffIn, long diffOut, long lastConnectedTime) {
         Message msg = mHandler.obtainMessage(SEND_NEW_BYTECOUNT, Pair.create(in, out));
         msg.sendToTarget();
     }
@@ -159,7 +159,7 @@ public class OpenVPNStatusService extends Service implements VpnStatus.LogListen
 
 
     @Override
-    public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent intent) {
+    public void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent intent, long lastConnectedTime) {
 
         mLastUpdateMessage = new UpdateMessage(state, logmessage, localizedResId, level, intent);
         Message msg = mHandler.obtainMessage(SEND_NEW_STATE, mLastUpdateMessage);

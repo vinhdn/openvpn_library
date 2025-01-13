@@ -35,31 +35,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        vpnHelper = VPNHelper(this, this)
-        vpnHelper.onAttachedToWindow()
+        val multipleState = mutableStateOf("init")
+        val multipleStatus = mutableStateOf("--")
         setContent {
             Openvpn_libraryTheme {
-                var state by remember {
-                    mutableStateOf("init")
+                val state by remember {
+                    multipleState
                 }
-                var status by remember {
-                    mutableStateOf("--")
+                val status by remember {
+                    multipleStatus
                 }
-                vpnHelper.setOnVPNStatusChangeListener(object : OnVPNStatusChangeListener {
-
-                    override fun onVPNStatusChanged(status: String?) {
-                        state = status ?: "Android"
-                    }
-
-                    override fun onConnectionStatusChanged(
-                        duration: String?,
-                        lastPacketReceive: String?,
-                        byteIn: String?,
-                        byteOut: String?
-                    ) {
-                        status = "Duration: $duration\nLast packet receive: $lastPacketReceive\nByte in: $byteIn\nByte out: $byteOut"
-                    }
-                })
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
 
                     Column {
@@ -98,6 +83,28 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        VPNHelper.listener = object : OnVPNStatusChangeListener {
+
+            override fun onVPNStatusChanged(status: String?) {
+                multipleState.value = status ?: "Android"
+            }
+
+            override fun onConnectionStatusChanged(
+                duration: String?,
+                lastPacketReceive: String?,
+                byteIn: String?,
+                byteOut: String?
+            ) {
+                multipleStatus.value = "Duration: $duration\nLast packet receive: $lastPacketReceive\nByte in: $byteIn\nByte out: $byteOut"
+            }
+        }
+        vpnHelper = VPNHelper(this, this)
+        vpnHelper.onAttachedToWindow()
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        finish();
     }
 
     override fun onDestroy() {

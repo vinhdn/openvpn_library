@@ -16,9 +16,12 @@ import androidx.annotation.StringRes;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Vector;
 
 import de.blinkt.openvpn.R;
@@ -33,6 +36,8 @@ public class VpnStatus {
     private static String mLaststatemsg = "";
 
     private static String mLaststate = "NOPROCESS";
+
+    private static long mLastConnectedTime = Calendar.getInstance().getTimeInMillis();
 
     private static int mLastStateresid = R.string.state_noprocess;
 
@@ -216,13 +221,13 @@ public class VpnStatus {
     }
 
     public interface StateListener {
-        void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent);
+        void updateState(String state, String logmessage, int localizedResId, ConnectionStatus level, Intent Intent, long lastConnectedTime);
 
         void setConnectedVPN(String uuid);
     }
 
     public interface ByteCountListener {
-        void updateByteCount(long in, long out, long diffIn, long diffOut);
+        void updateByteCount(long in, long out, long diffIn, long diffOut, long lastConnectedTime);
     }
 
     public synchronized static void logMessage(LogLevel level, String prefix, String message) {
@@ -259,8 +264,10 @@ public class VpnStatus {
 
     public synchronized static void addByteCountListener(ByteCountListener bcl) {
         TrafficHistory.LastDiff diff = trafficHistory.getLastDiff(null);
-        bcl.updateByteCount(diff.getIn(), diff.getOut(), diff.getDiffIn(),diff.getDiffOut());
-        byteCountListener.add(bcl);
+        bcl.updateByteCount(diff.getIn(), diff.getOut(), diff.getDiffIn(),diff.getDiffOut(), mLastConnectedTime);
+        if(!byteCountListener.contains(bcl)) {
+            byteCountListener.add(bcl);
+        }
     }
 
     public synchronized static void removeByteCountListener(ByteCountListener bcl) {
@@ -271,9 +278,9 @@ public class VpnStatus {
     public synchronized static void addStateListener(StateListener sl) {
         if (!stateListener.contains(sl)) {
             stateListener.add(sl);
-            if (mLaststate != null)
-                sl.updateState(mLaststate, mLaststatemsg, mLastStateresid, mLastLevel, mLastIntent);
         }
+        if (mLaststate != null)
+            sl.updateState(mLaststate, mLaststatemsg, mLastStateresid, mLastLevel, mLastIntent, mLastConnectedTime);
     }
 
     private static int getLocalizedState(String state) {
@@ -390,6 +397,9 @@ public class VpnStatus {
         }
 
         mLaststate = state;
+        if(level == ConnectionStatus.LEVEL_CONNECTED) {
+            mLastConnectedTime = Calendar.getInstance().getTimeInMillis();
+        }
         mLaststatemsg = msg;
         mLastStateresid = resid;
         mLastLevel = level;
@@ -397,7 +407,7 @@ public class VpnStatus {
 
 
         for (StateListener sl : stateListener) {
-            sl.updateState(state, msg, resid, level, intent);
+            sl.updateState(state, msg, resid, level, intent, mLastConnectedTime);
         }
         //newLogItem(new LogItem((LogLevel.DEBUG), String.format("New OpenVPN Status (%s->%s): %s",state,level.toString(),msg)));
     }
@@ -524,7 +534,7 @@ public class VpnStatus {
         TrafficHistory.LastDiff diff = trafficHistory.add(in, out);
 
         for (ByteCountListener bcl : byteCountListener) {
-            bcl.updateByteCount(in, out, diff.getDiffIn(), diff.getDiffOut());
+            bcl.updateByteCount(in, out, diff.getDiffIn(), diff.getDiffOut(), mLastConnectedTime);
         }
     }
 }
