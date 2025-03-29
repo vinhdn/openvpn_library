@@ -9,7 +9,8 @@ import de.blinkt.openvpn.core.LogItem;
 import de.blinkt.openvpn.core.ConnectionStatus;
 
 
-
+/* Used to notify the UI process from the :openvpn service process of changes/event happening in
+ * the backend */
 interface IStatusCallbacks {
     /**
      * Called when the service has a new status for you.

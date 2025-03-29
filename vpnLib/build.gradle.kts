@@ -19,7 +19,7 @@ android {
         buildConfig = true
     }
     namespace = "de.blinkt.openvpn"
-    compileSdk = 34
+    compileSdk = 35
     //compileSdkPreview = "UpsideDownCake"
 
     // Also update runcoverity.sh
@@ -28,7 +28,7 @@ android {
 
     defaultConfig {
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 35
     }
 
     sourceSets {
@@ -82,6 +82,8 @@ dependencies {
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+
+    implementation("com.github.seancfoley:ipaddress:5.4.0")
 
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.junit)
